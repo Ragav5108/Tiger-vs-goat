@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aadu Pulli Attam - Tiger vs Goat</title>
+    <style>
+        :root {
+            --primary: #FF9933;
+            --secondary: #CC0000;
+            --accent: #FFD700;
+            --bg: #FFF5E1;
+            --text: #5D4037;
+            --board-1: #FF6B6B;
+            --board-2: #4ECDC4;
+            --board-3: #FFE66D;
+            --board-4: #95E1D3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FF9933 0%, #CC0000 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s;
+            padding: 20px;
+        }
+
+        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        .active { opacity: 1; pointer-events: all; z-index: 10; }
+
+        /* --- Menu Styling --- */
+        .menu-card {            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border: 4px solid var(--accent);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 0px var(--accent);
+        }
+
+        h2 { font-size: 1.2rem; margin: 15px 0 10px; color: var(--text); }
+
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+
+        button:active { transform: translateY(4px); box-shadow: none; }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-accent { background: var(--accent); color: var(--text); }
+        .btn-outline { background: transparent; border: 2px solid var(--text); color: var(--text); }
+
+        .selected { ring: 3px solid var(--secondary); transform: scale(1.05); }
+
+        .board-preview {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .board-option {
+            width: 60px;            height: 60px;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            background-size: cover;
+        }
+
+        .board-option.selected { border-color: var(--secondary); transform: scale(1.1); }
+
+        /* --- Game Screen --- */
+        #game-screen { justify-content: flex-start; padding-top: 10px; }
+
+        .top-bar {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .turn-indicator {
+            background: white;
+            color: var(--text);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .game-container {
+            position: relative;
+            background: #FFE4B5;
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border: 5px solid #8B4513;
+        }
+
+        canvas {
+            display: block;
+            border-radius: 10px;
+            touch-action: none;
+        }
+
+        .stats-bar {
+            width: 100%;            max-width: 500px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 10px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .stat-box { text-align: center; }
+        .stat-val { color: var(--secondary); font-size: 1.2rem; }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* --- Modal --- */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 400px) {
+            h1 { font-size: 1.5rem; }
+            .menu-card { padding: 20px; }
+            button { padding: 10px 20px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MENU SCREEN -->    <div id="menu-screen" class="screen active">
+        <div class="menu-card">
+            <h1>🐯 Aadu Pulli Attam 🐐</h1>
+            <p style="margin-bottom: 20px; color: #666;">Tiger vs Goat</p>
+
+            <h2>Opponent</h2>
+            <div class="btn-group">
+                <button class="btn-primary selected" onclick="setMode('cpu')">VS Computer</button>
+                <button class="btn-outline" onclick="setMode('player')">VS Player</button>
+            </div>
+
+            <h2>Your Side</h2>
+            <div class="btn-group">
+                <button class="btn-secondary selected" onclick="setSide('goat')">🐐 Goat</button>
+                <button class="btn-primary" onclick="setSide('tiger')">🐯 Tiger</button>
+            </div>
+
+            <h2>Board Style</h2>
+            <div class="board-preview">
+                <div class="board-option selected" style="background: linear-gradient(45deg, #FF6B6B 25%, #4ECDC4 25%, #4ECDC4 50%, #FF6B6B 50%, #FF6B6B 75%, #4ECDC4 75%);" onclick="setBoard(0)"></div>
+                <div class="board-option" style="background: linear-gradient(45deg, #FFE66D 25%, #95E1D3 25%, #95E1D3 50%, #FFE66D 50%, #FFE66D 75%, #95E1D3 75%);" onclick="setBoard(1)"></div>
+                <div class="board-option" style="background: linear-gradient(45deg, #FF9933 25%, #CC0000 25%, #CC0000 50%, #FF9933 50%, #FF9933 75%, #CC0000 75%);" onclick="setBoard(2)"></div>
+            </div>
+
+            <button class="btn-accent" style="width: 100%; margin-top: 20px; font-size: 1.2rem;" onclick="startGame()">PLAY GAME</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen hidden">
+        <div class="top-bar">
+            <button class="btn-outline" style="padding: 5px 15px; font-size: 0.8rem;" onclick="showMenu()">🏠 Home</button>
+            <div class="turn-indicator" id="turn-text">Goat's Turn</div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-box">Tigers<br><span class="stat-val" id="score-tiger">0</span></div>
+            <div class="stat-box">Goats Captured<br><span class="stat-val" id="score-captured">0</span>/5</div>
+            <div class="stat-box">Goats Left<br><span class="stat-val" id="score-left">15</span></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-outline" onclick="undoMove()">↩ Undo</button>
+            <button class="btn-secondary" onclick="resetGame()">🔄 Restart</button>
+        </div>
+    </div>
+    <!-- GAME OVER MODAL -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <h1 id="winner-text">Tigers Win!</h1>
+            <p id="winner-reason" style="margin: 10px 0 20px;">5 Goats Captured</p>
+            <button class="btn-primary" onclick="resetGame()">Play Again</button>
+            <button class="btn-outline" onclick="showMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Constants & State ---
+        const BOARD_SIZE = 5;
+        const CELL_SIZE = 60;
+        const PADDING = 20;
+        
+        // Game State
+        let state = {
+            mode: 'cpu', // 'cpu' or 'player'
+            playerSide: 'goat', // 'goat' or 'tiger'
+            boardStyle: 0,
+            board: [], // 5x5 grid: null, 'tiger', 'goat'
+            turn: 'goat', // 'goat' or 'tiger'
+            goatsPlaced: 0,
+            goatsCaptured: 0,
+            totalGoats: 15,
+            selected: null, // {r, c}
+            history: [],
+            gameOver: false
+        };
+
+        // Connections for movement (5x5 grid with diagonals in squares)
+        // Standard Bagh Chal connections
+        const connections = [];
+        function initConnections() {
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    let moves = [];
+                    // Orthogonal
+                    if(r>0) moves.push([r-1, c]);
+                    if(r<BOARD_SIZE-1) moves.push([r+1, c]);
+                    if(c>0) moves.push([r, c-1]);
+                    if(c<BOARD_SIZE-1) moves.push([r, c+1]);
+                    // Diagonal (only within 2x2 squares)
+                    if(r>0 && c>0) moves.push([r-1, c-1]);
+                    if(r>0 && c<BOARD_SIZE-1) moves.push([r-1, c+1]);
+                    if(r<BOARD_SIZE-1 && c>0) moves.push([r+1, c-1]);
+                    if(r<BOARD_SIZE-1 && c<BOARD_SIZE-1) moves.push([r+1, c+1]);
+                    connections[`${r},${c}`] = moves;                }
+            }
+        }
+        initConnections();
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menuScreen = document.getElementById('menu-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const modal = document.getElementById('modal');
+        const turnText = document.getElementById('turn-text');
+        const scoreTiger = document.getElementById('score-tiger');
+        const scoreCaptured = document.getElementById('score-captured');
+        const scoreLeft = document.getElementById('score-left');
+
+        // --- Menu Functions ---
+        function setMode(mode) {
+            state.mode = mode;
+            updateBtnStyles('Opponent', mode === 'cpu' ? 0 : 1);
+        }
+        function setSide(side) {
+            state.playerSide = side;
+            updateBtnStyles('Your Side', side === 'goat' ? 0 : 1);
+        }
+        function setBoard(style) {
+            state.boardStyle = style;
+            document.querySelectorAll('.board-option').forEach((el, i) => {
+                el.classList.toggle('selected', i === style);
+            });
+        }
+        function updateBtnStyles(section, selectedIndex) {
+            // Simple visual toggle logic handled by inline onclick for simplicity in single file
+            const groups = document.querySelectorAll('.btn-group');
+            // This is a simplified visual handler
+            event.target.parentElement.querySelectorAll('button').forEach(b => {
+                b.classList.remove('selected');
+                if(b === event.target) b.classList.add('selected');
+                // Swap classes for visual feedback
+                if(b.classList.contains('btn-primary')) b.classList.replace('btn-primary', 'btn-outline');
+                else if(b.classList.contains('btn-outline')) b.classList.replace('btn-outline', 'btn-primary');
+                if(b.classList.contains('btn-secondary')) b.classList.replace('btn-secondary', 'btn-outline');
+                else if(b.classList.contains('btn-outline') && b.innerText.includes('Goat')) b.classList.replace('btn-outline', 'btn-secondary');
+            });
+            // Re-apply active style to clicked
+            event.target.classList.remove('btn-outline');
+            if(section === 'Opponent') event.target.classList.add('btn-primary');
+            if(section === 'Your Side') event.target.classList.add(state.playerSide === 'tiger' ? 'btn-primary' : 'btn-secondary');
+        }
+        function showMenu() {
+            gameScreen.classList.remove('active');
+            gameScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+            menuScreen.classList.add('active');
+            modal.classList.add('hidden');
+        }
+
+        function startGame() {
+            menuScreen.classList.remove('active');
+            menuScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('active');
+            resetGame();
+        }
+
+        // --- Game Logic ---
+        function resetGame() {
+            state.board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+            state.turn = 'goat'; // Goats always start
+            state.goatsPlaced = 0;
+            state.goatsCaptured = 0;
+            state.history = [];
+            state.gameOver = false;
+            state.selected = null;
+            
+            // Place initial tigers (4 corners)
+            state.board[0][0] = 'tiger';
+            state.board[0][4] = 'tiger';
+            state.board[4][0] = 'tiger';
+            state.board[4][4] = 'tiger';
+
+            modal.classList.add('hidden');
+            updateUI();
+            resizeCanvas();
+            draw();
+
+            // If player chose Tiger, CPU (Goat) starts
+            if(state.mode === 'cpu' && state.playerSide === 'tiger') {
+                setTimeout(cpuMove, 500);
+            }
+        }
+
+        function updateUI() {
+            turnText.innerText = state.turn === 'goat' ? "🐐 Goat's Turn" : "🐯 Tiger's Turn";
+            turnText.style.color = state.turn === 'goat' ? '#4ECDC4' : '#FF6B6B';
+            scoreCaptured.innerText = state.goatsCaptured;
+            scoreLeft.innerText = state.totalGoats - state.goatsPlaced;
+            
+            // Count tigers on board (always 4 unless variant)            let tigerCount = 0;
+            state.board.forEach(row => row.forEach(cell => { if(cell==='tiger') tigerCount++; }));
+            scoreTiger.innerText = tigerCount;
+        }
+
+        function switchTurn() {
+            state.turn = state.turn === 'goat' ? 'tiger' : 'goat';
+            updateUI();
+            checkWin();
+            
+            if(!state.gameOver && state.mode === 'cpu' && state.turn !== state.playerSide) {
+                setTimeout(cpuMove, 600);
+            }
+        }
+
+        function checkWin() {
+            // Tigers Win: 5 Goats Captured
+            if(state.goatsCaptured >= 5) {
+                endGame('tiger', '5 Goats Captured!');
+                return;
+            }
+
+            // Goats Win: All Tigers Blocked
+            let tigersBlocked = true;
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    if(state.board[r][c] === 'tiger') {
+                        if(getValidMoves(r, c, 'tiger').length > 0) {
+                            tigersBlocked = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if(tigersBlocked && state.goatsPlaced === state.totalGoats) {
+                endGame('goat', 'All Tigers Blocked!');
+                return;
+            }
+        }
+
+        function endGame(winner, reason) {
+            state.gameOver = true;
+            document.getElementById('winner-text').innerText = winner === 'tiger' ? "🐯 Tigers Win!" : "🐐 Goats Win!";
+            document.getElementById('winner-reason').innerText = reason;
+            modal.classList.remove('hidden');
+        }
+
+        function getValidMoves(r, c, piece) {
+            let moves = [];
+            let neighbors = connections[`${r},${c}`];            
+            neighbors.forEach(([nr, nc]) => {
+                if(state.board[nr][nc] === null) {
+                    moves.push({r: nr, c: nc, capture: false});
+                } else if(piece === 'tiger' && state.board[nr][nc] === 'goat') {
+                    // Check jump
+                    let jumpR = nr + (nr - r);
+                    let jumpC = nc + (nc - c);
+                    if(jumpR >= 0 && jumpR < BOARD_SIZE && jumpC >= 0 && jumpC < BOARD_SIZE) {
+                        if(state.board[jumpR][jumpC] === null) {
+                            moves.push({r: jumpR, c: jumpC, capture: true, killR: nr, killC: nc});
+                        }
+                    }
+                }
+            });
+            return moves;
+        }
+
+        function saveState() {
+            // Deep copy for undo
+            state.history.push({
+                board: state.board.map(row => [...row]),
+                turn: state.turn,
+                goatsPlaced: state.goatsPlaced,
+                goatsCaptured: state.goatsCaptured
+            });
+            if(state.history.length > 10) state.history.shift();
+        }
+
+        function undoMove() {
+            if(state.history.length === 0 || state.gameOver) return;
+            // If vs CPU, undo 2 moves (player + cpu)
+            let steps = state.mode === 'cpu' ? 2 : 1;
+            while(steps > 0 && state.history.length > 0) {
+                let prev = state.history.pop();
+                state.board = prev.board;
+                state.turn = prev.turn;
+                state.goatsPlaced = prev.goatsPlaced;
+                state.goatsCaptured = prev.goatsCaptured;
+                steps--;
+            }
+            state.selected = null;
+            state.gameOver = false;
+            updateUI();
+            draw();
+        }
+
+        // --- Input Handling ---
+        function handleInput(e) {
+            if(state.gameOver) return;            if(state.mode === 'cpu' && state.turn !== state.playerSide) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX = e.clientX || e.touches[0].clientX;
+            let clientY = e.clientY || e.touches[0].clientY;
+
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
+
+            // Find closest node
+            const nodeSize = CELL_SIZE;
+            const offsetX = PADDING;
+            const offsetY = PADDING;
+
+            const c = Math.round((x - offsetX) / nodeSize);
+            const r = Math.round((y - offsetY) / nodeSize);
+
+            if(r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                onNodeClick(r, c);
+            }
+        }
+
+        function onNodeClick(r, c) {
+            const piece = state.board[r][c];
+            const isCurrentPlayerPiece = piece === state.turn;
+
+            // 1. Select Piece
+            if(isCurrentPlayerPiece) {
+                state.selected = {r, c};
+                draw();
+                return;
+            }
+
+            // 2. Move Piece
+            if(state.selected) {
+                const moves = getValidMoves(state.selected.r, state.selected.c, state.turn);
+                const move = moves.find(m => m.r === r && m.c === c);
+
+                if(move) {
+                    saveState();
+                    executeMove(state.selected, move);
+                    state.selected = null;
+                    draw();
+                    switchTurn();
+                } else {
+                    // Deselect if clicking invalid empty spot
+                    state.selected = null;                    draw();
+                }
+            } 
+            // 3. Place Goat (Special Phase)
+            else if(state.turn === 'goat' && state.goatsPlaced < state.totalGoats && piece === null) {
+                saveState();
+                state.board[r][c] = 'goat';
+                state.goatsPlaced++;
+                draw();
+                switchTurn();
+            }
+        }
+
+        function executeMove(from, move) {
+            const piece = state.board[from.r][from.c];
+            state.board[from.r][from.c] = null;
+            state.board[move.r][move.c] = piece;
+
+            if(move.capture) {
+                state.board[move.killR][move.killC] = null;
+                state.goatsCaptured++;
+            }
+        }
+
+        // --- AI (Simple Heuristic) ---
+        function cpuMove() {
+            if(state.gameOver) return;
+
+            let possibleMoves = [];
+            const aiPiece = state.turn;
+
+            if(aiPiece === 'goat' && state.goatsPlaced < state.totalGoats) {
+                // Place Goat
+                for(let r=0; r<BOARD_SIZE; r++) {
+                    for(let c=0; c<BOARD_SIZE; c++) {
+                        if(state.board[r][c] === null) {
+                            possibleMoves.push({type: 'place', r, c});
+                        }
+                    }
+                }
+            } else {
+                // Move Piece
+                for(let r=0; r<BOARD_SIZE; r++) {
+                    for(let c=0; c<BOARD_SIZE; c++) {
+                        if(state.board[r][c] === aiPiece) {
+                            let moves = getValidMoves(r, c, aiPiece);
+                            moves.forEach(m => {
+                                possibleMoves.push({type: 'move', from: {r,c}, to: m});
+                            });
+                        }                    }
+                }
+            }
+
+            if(possibleMoves.length === 0) {
+                // No moves possible, pass turn (should trigger win check)
+                switchTurn();
+                return;
+            }
+
+            // Simple AI Logic
+            let chosen = null;
+            
+            if(aiPiece === 'tiger') {
+                // Prioritize Capture
+                chosen = possibleMoves.find(m => m.type === 'move' && m.to.capture);
+            } else {
+                // Prioritize Blocking Tigers (Simple: don't place next to tiger if possible)
+                chosen = possibleMoves.find(m => {
+                    if(m.type === 'place') {
+                        // Check neighbors
+                        let neighbors = connections[`${m.r},${m.c}`];
+                        let hasTiger = neighbors.some(([nr, nc]) => state.board[nr][nc] === 'tiger');
+                        return !hasTiger;
+                    }
+                    return true;
+                });
+            }
+
+            // Fallback to random
+            if(!chosen) chosen = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+
+            saveState();
+            if(chosen.type === 'place') {
+                state.board[chosen.r][chosen.c] = 'goat';
+                state.goatsPlaced++;
+            } else {
+                executeMove(chosen.from, chosen.to);
+            }
+            
+            draw();
+            switchTurn();
+        }
+
+        // --- Drawing ---
+        function resizeCanvas() {
+            const container = document.querySelector('.game-container');
+            const size = Math.min(container.clientWidth - 20, 500);
+            const dpr = window.devicePixelRatio || 1;
+                        canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width = `${size}px`;
+            canvas.style.height = `${size}px`;
+            
+            ctx.scale(dpr, dpr);
+            draw();
+        }
+
+        function draw() {
+            const size = parseInt(canvas.style.width);
+            const cell = (size - PADDING * 2) / (BOARD_SIZE - 1);
+            
+            ctx.clearRect(0, 0, size, size);
+
+            // 1. Draw Board Background (Indian Style Patterns)
+            const colors = [
+                ['#FF6B6B', '#4ECDC4'], // Style 0
+                ['#FFE66D', '#95E1D3'], // Style 1
+                ['#FF9933', '#CC0000']  // Style 2
+            ];
+            const palette = colors[state.boardStyle];
+            
+            // Draw colored squares
+            for(let r=0; r<BOARD_SIZE-1; r++) {
+                for(let c=0; c<BOARD_SIZE-1; c++) {
+                    ctx.fillStyle = (r+c)%2 === 0 ? palette[0] : palette[1];
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillRect(PADDING + c*cell, PADDING + r*cell, cell, cell);
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+
+            // 2. Draw Lines
+            ctx.strokeStyle = '#5D4037';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // Grid Lines
+            for(let i=0; i<BOARD_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(PADDING, PADDING + i*cell);
+                ctx.lineTo(PADDING + (BOARD_SIZE-1)*cell, PADDING + i*cell);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(PADDING + i*cell, PADDING);
+                ctx.lineTo(PADDING + i*cell, PADDING + (BOARD_SIZE-1)*cell);
+                ctx.stroke();
+            }
+            // Diagonal Lines (in 2x2 squares)
+            for(let r=0; r<BOARD_SIZE-1; r++) {
+                for(let c=0; c<BOARD_SIZE-1; c++) {
+                    ctx.beginPath();
+                    ctx.moveTo(PADDING + c*cell, PADDING + r*cell);
+                    ctx.lineTo(PADDING + (c+1)*cell, PADDING + (r+1)*cell);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(PADDING + (c+1)*cell, PADDING + r*cell);
+                    ctx.lineTo(PADDING + c*cell, PADDING + (r+1)*cell);
+                    ctx.stroke();
+                }
+            }
+
+            // 3. Draw Nodes
+            for(let r=0; r<BOARD_SIZE; r++) {
+                for(let c=0; c<BOARD_SIZE; c++) {
+                    const x = PADDING + c*cell;
+                    const y = PADDING + r*cell;
+
+                    // Highlight Selected
+                    if(state.selected && state.selected.r === r && state.selected.c === c) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, cell/2, 0, Math.PI*2);
+                        ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+                        ctx.fill();
+                    }
+
+                    // Highlight Valid Moves
+                    if(state.selected) {
+                        const moves = getValidMoves(state.selected.r, state.selected.c, state.turn);
+                        if(moves.find(m => m.r === r && m.c === c)) {
+                            ctx.beginPath();
+                            ctx.arc(x, y, cell/4, 0, Math.PI*2);
+                            ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+                            ctx.fill();
+                        }
+                    }
+
+                    // Draw Piece
+                    const piece = state.board[r][c];
+                    if(piece) {
+                        ctx.font = `${cell*0.8}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(piece === 'tiger' ? '🐯' : '🐐', x, y + cell*0.05);
+                    } else {
+                        // Empty Node Dot                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, Math.PI*2);
+                        ctx.fillStyle = '#5D4037';
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // --- Event Listeners ---
+        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
+        window.addEventListener('resize', resizeCanvas);
+
+        // Init
+        resizeCanvas();
+    </script>
+</body>
+</html>
