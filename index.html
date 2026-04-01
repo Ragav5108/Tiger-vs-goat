@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiger vs Goat - Aadu Pulli Attam</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="menu">
+        <h1>🐯 Tiger vs Goat 🐐</h1>
+        <button onclick="selectMode('computer')">VS Computer</button>
+        <button onclick="selectMode('player')">VS Player</button>
+        <div id="board-select">
+            <h3>Choose Board:</h3>
+            <button onclick="selectBoard('triangle')">Triangle + Rectangle</button>
+            <button onclick="selectBoard('square')">Square Grid</button>
+        </div>
+        <div id="side-select">
+            <h3>Pick Your Side:</h3>
+            <button onclick="selectSide('tiger')">🐯 Tiger</button>
+            <button onclick="selectSide('goat')">🐐 Goat</button>
+        </div>
+    </div>
+    
+    <div id="game-board" style="display:none;">
+        <canvas id="board"></canvas>
+        <div id="score">
+            <span>Tigers Cornered: <span id="cornered">0</span></span>
+            <span>Goats Captured: <span id="captured">0</span></span>
+            <span>Goats Outside: <span id="outside">20</span></span>
+        </div>
+        <button onclick="resetGame()">New Game</button>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
